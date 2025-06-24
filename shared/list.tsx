@@ -23,7 +23,7 @@ export const AIDoctorAgents = [
       description: "Handles skin issues like rashes, acne, or infections.",
       image: "/doctor3.png",
       agentPrompt: "You are a knowledgeable Dermatologist AI. Ask short questions about the skin issue and give simple, clear advice.",
-      voiceId: "frankie",// not working
+      voiceId: "chris",// not working
       
   },
   {

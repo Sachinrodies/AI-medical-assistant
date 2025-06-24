@@ -10,6 +10,7 @@ import {
   UserButton,
 } from '@clerk/nextjs'
 import Provider from "./provider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
       >
         <Provider>
         {children}
+        <Toaster/>
 
         </Provider>
         

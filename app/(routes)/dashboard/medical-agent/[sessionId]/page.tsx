@@ -8,8 +8,11 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import Vapi from '@vapi-ai/web';
 import Provider from '@/app/provider'
+import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
-type sessionDetails = {
+export type sessionDetails = {
   id: number,
 
   notes: string,
@@ -34,6 +37,9 @@ function MedicalVoiceAgent() {
   const [currentRole, setCurrentRole] = useState<string|null>();
   const [liveTranscript, setLiveTranscript] = useState<string>();
   const [messages, setMessages] = useState<message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const router=useRouter();
   
 
 
@@ -57,6 +63,7 @@ function MedicalVoiceAgent() {
       alert("Doctor configuration incomplete (missing voiceId or prompt).");
       return;
     }
+    setConnecting(true);
     console.log("Using voiceId:", sessionDetails.selectedDoctor.voiceId);
     
     const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
@@ -92,6 +99,8 @@ function MedicalVoiceAgent() {
     vapi.start(VapiAgentConfig);
     // vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!)
     vapi.on('call-start', () => {console.log('Call started')
+      setLoading(false)
+      setConnecting(false)
       setCallStarted(true);
   });
     vapi.on('call-end', () =>{ console.log('Call ended')
@@ -129,21 +138,45 @@ function MedicalVoiceAgent() {
     });
 
   }
-  const endCall = () => {
-    if(!vapiInstance) return;
+  const endCall = async() => {
+    setLoading(true);
+    if(!vapiInstance) {
+      setLoading(false);
+      return;
+    }
     vapiInstance.stop();
     vapiInstance.off('call-start');
     vapiInstance.off('call-end');
     vapiInstance.off('message');
+    vapiInstance.off('speech-start');
+    vapiInstance.off('speech-end');
+    
     setCallStarted(false);
     setVapiInstance(null);
-
-    
-   
+    router.replace("/dashboard");
+    toast.success("Your report is generated");
+    setLoading(false);
   };
+  const GenerateReport=async()=>{
+    const result=await axios.post("/api/medical-report",{
+      messages:messages,
+      sessionDetails:sessionDetails,
+      sessionId:sessionId,
+
+    })
+    console.log(result.data);
+    return result.data;
+
+  }
 
   return (
-    <div className="p-5 border rounded-3xl bg-secondary">
+    <div className="p-5 border rounded-3xl bg-secondary relative">
+      {connecting && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">
+          <Loader2 className="animate-spin text-white" size={48} />
+          <span className="mt-4 text-white text-lg font-semibold">Connecting to AI Medical Voice Agent...</span>
+        </div>
+      )}
       <div className='flex justify-between items-center'>
         <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center"> <Circle className={`h-4 w-4 rounded-full ${callStarted?"bg-green-500":"bg-red-500"}`} />{callStarted ? "Connected..":"Not Connected"}</h2>
         <h2 className="font-bold text-xl text-gray-400">00:00</h2>
@@ -174,9 +207,12 @@ function MedicalVoiceAgent() {
           {liveTranscript && liveTranscript?.length>0 &&<h2 className="text-lg">{currentRole}:{liveTranscript}</h2>}
 
         </div>
-        {!callStarted ?<Button className="mt-20" onClick={startCall}><PhoneCall />Start Call</Button>
-        :<Button onClick={endCall} variant={"destructive"}>
-          <PhoneOff />Disconnect</Button>}
+        {!callStarted ?<Button className="mt-20" onClick={startCall} disabled={loading}>
+          {loading ?<Loader2 className="animate-spin" />:<PhoneCall />}Start Call
+        </Button>
+        :<Button onClick={endCall} variant={"destructive"} disabled={loading}>
+          {loading ?<Loader2 className="animate-spin" />:<PhoneOff />}Disconnect
+        </Button>}
 
 
       </div>

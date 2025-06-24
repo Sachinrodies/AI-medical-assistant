@@ -36,6 +36,11 @@ function AddNewSessionDialog() {
     }
     const onStartConsultation = async () => {
         setLoading(true);
+        if (!selectedDoctor || typeof selectedDoctor !== 'object') {
+            alert('Please select a doctor.');
+            setLoading(false);
+            return;
+        }
         const result = await axios.post("/api/session-chat", {
             notes: note,
             selectedDoctor: selectedDoctor
