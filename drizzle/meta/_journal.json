@@ -15,6 +15,13 @@
       "when": 1750684550900,
       "tag": "0001_regular_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1750749221937,
+      "tag": "0002_crazy_blink",
+      "breakpoints": true
     }
   ]
 }

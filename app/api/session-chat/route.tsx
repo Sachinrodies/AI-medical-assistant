@@ -3,24 +3,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "@/config/db";
 import { sessionChatTable } from "@/config/schema";
-import { eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"; 
+
 
 export async function POST(req:NextRequest){
     const {notes,selectedDoctor}=await req.json();
     const user=await currentUser();
-    if (!user?.primaryEmailAddress?.emailAddress) {
-        return NextResponse.json({ error: "User email not found" }, { status: 400 });
-    }
+  
     try{
         const sessionId=uuidv4();
         const result=await db.insert(sessionChatTable).values({
             sessionId: sessionId,
-            createdBy: user.primaryEmailAddress.emailAddress,
+            createdBy: user?.primaryEmailAddress?.emailAddress,
             notes: notes,
             selectedDoctor: selectedDoctor,
-            createdOn: new Date()
-        }).returning();
-        return NextResponse.json(result[0]);
+            createdOn: (new Date()).toString(),
+            //@ts-ignore
+        }).returning({sessionChatTable});
+        return NextResponse.json(result[0]?.sessionChatTable);
         
     }catch(error){
        return NextResponse.json(error);

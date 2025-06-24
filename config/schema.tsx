@@ -11,12 +11,13 @@ export const sessionChatTable = pgTable("session_chat", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
 
   sessionId: varchar({ length: 255 }).notNull(),
-  createdBy: varchar({ length: 255 }).notNull(),
-  notes: text().notNull(),
-
+  notes: text(),
   selectedDoctor: json().notNull(),
-  createdOn: timestamp().notNull(),
-
   conversation: json(),
   report: json(),
+  createdBy: varchar({ length: 255 }).references(()=>usersTable.email),
+  createdOn:varchar({ length: 255 }),
+
+ 
+ 
 });
