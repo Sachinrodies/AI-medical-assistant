@@ -296,10 +296,10 @@ const SkeletonFive = () => {
 };
 const items = [
   {
-    title: "AI Content Generation",
+    title: "24/7 Medical Support",
     description: (
       <span className="text-sm">
-        Experience the power of AI in generating unique content.
+        Instantly connect with an AI medical agent for round-the-clock support and answers to health questions.
       </span>
     ),
     header: <SkeletonOne />,
@@ -307,10 +307,10 @@ const items = [
     icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
   },
   {
-    title: "Automated Proofreading",
+    title: "Symptom Triage & Guidance",
     description: (
       <span className="text-sm">
-        Let AI handle the proofreading of your documents.
+        Get quick, AI-driven triage for symptoms and receive actionable next steps or recommendations.
       </span>
     ),
     header: <SkeletonTwo />,
@@ -318,10 +318,10 @@ const items = [
     icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
   },
   {
-    title: "Contextual Suggestions",
+    title: "Appointment Scheduling",
     description: (
       <span className="text-sm">
-        Get AI-powered suggestions based on your writing context.
+        Seamlessly book appointments with healthcare professionals through voice or chat with the AI agent.
       </span>
     ),
     header: <SkeletonThree />,
@@ -329,22 +329,21 @@ const items = [
     icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
   },
   {
-    title: "Sentiment Analysis",
+    title: "Personalized Health Insights",
     description: (
       <span className="text-sm">
-        Understand the sentiment of your text with AI analysis.
+        Receive tailored health tips, reminders, and recommendations based on your medical history and needs.
       </span>
     ),
     header: <SkeletonFour />,
     className: "md:col-span-2",
     icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
   },
-
   {
-    title: "Text Summarization",
+    title: "Secure Patient Data Handling",
     description: (
       <span className="text-sm">
-        Summarize your lengthy documents with AI technology.
+        Your health information is protected with advanced security and privacy measures at every step.
       </span>
     ),
     header: <SkeletonFive />,

@@ -9,15 +9,23 @@ import { sessionDetails } from '../medical-agent/[sessionId]/page'
 
 function HistoryList() {
     const [history,setHistory]=useState<sessionDetails[]>([])
-    useEffect(()=>{
-      GetHistory();
-      
+    const [isMounted, setIsMounted] = useState(false);
 
-    },[])
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(()=>{
+        if (isMounted) {
+            GetHistory();
+        }
+    },[isMounted])
+
     const GetHistory=async()=>{
       const result=await axios.get("/api/session-chat?sessionId=all");
       console.log(result.data);
       setHistory(result.data);
+      
     }
   return (
     <div className="mt-10">

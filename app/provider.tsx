@@ -15,11 +15,17 @@ const Provider = ({children,
 }>) => {
     const {user}=useUser();
     const [userDetail,setUserDetail]=useState<any>();
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     useEffect(()=>{
-        
-            user && CreateNewUser();
-        
-    },[user])
+        if (isMounted && user) {
+            CreateNewUser();
+        }
+    },[user, isMounted])
 
     const CreateNewUser=async()=>{
         const result=await axios.post("/api/users");

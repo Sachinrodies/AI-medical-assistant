@@ -5,6 +5,8 @@ import { FeatureBentoGrid } from "./_components/FeatureBentoGrid";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 // Dynamically import motion components with SSR disabled
 const MotionSpan = dynamic(() => import("motion/react").then(mod => ({ default: mod.motion.span })), { ssr: false });
@@ -13,7 +15,7 @@ const MotionDiv = dynamic(() => import("motion/react").then(mod => ({ default: m
 
 export default function HeroSectionOne() {
   return (
-    <div className="relative  my-10 flex  flex-col items-center justify-center">
+    <div className="relative mt-2 mb-10 flex  flex-col items-center justify-center">
       <Navbar />
       <div className="absolute inset-y-0 left-0 h-full w-px bg-neutral-200/80 dark:bg-neutral-800/80">
         <div className="absolute top-0 h-40 w-px bg-gradient-to-b from-transparent via-blue-500 to-transparent" />
@@ -96,14 +98,40 @@ export default function HeroSectionOne() {
           }}
           className="relative z-10 mt-20 rounded-3xl border border-neutral-200 bg-neutral-100 p-4 shadow-md dark:border-neutral-800 dark:bg-neutral-900"
         >
-          <div className="w-full overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700">
-            <img
-              src="https://assets.aceternity.com/pro/aceternity-landing.webp"
-              alt="Landing page preview"
-              className="aspect-[16/9] h-auto w-full object-cover"
-              height={1000}
-              width={1000}
-            />
+          <div className="w-full overflow-hidden rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-black p-6 max-w-2xl mx-auto">
+            <div className="mb-4 text-center text-lg font-semibold text-blue-700 dark:text-blue-300">AI Medical Agent Chat Example</div>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <Image src="/doctor1.png" alt="Doctor" width={40} height={40} className="rounded-full" />
+                <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-xl max-w-xs text-sm">
+                  Hello! How can I assist you with your health today?
+                </div>
+              </div>
+              <div className="flex items-start gap-3 flex-row-reverse">
+                <Image src="/default.png" alt="Patient" width={40} height={40} className="rounded-full" />
+                <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-xl max-w-xs text-sm">
+                  Hi Doctor, I've been having headaches and a mild fever since yesterday.
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Image src="/doctor1.png" alt="Doctor" width={40} height={40} className="rounded-full" />
+                <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-xl max-w-xs text-sm">
+                  I'm sorry to hear that. Can you tell me if you have any other symptoms, like a sore throat or cough?
+                </div>
+              </div>
+              <div className="flex items-start gap-3 flex-row-reverse">
+                <Image src="/default.png" alt="Patient" width={40} height={40} className="rounded-full" />
+                <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-xl max-w-xs text-sm">
+                  I have a slight sore throat, but no cough.
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Image src="/doctor1.png" alt="Doctor" width={40} height={40} className="rounded-full" />
+                <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-xl max-w-xs text-sm">
+                  Thank you for sharing. Based on your symptoms, it may be a mild viral infection. Stay hydrated and rest. If symptoms worsen, please consult a healthcare provider.
+                </div>
+              </div>
+            </div>
           </div>
         </MotionDiv>
       </div>
@@ -114,11 +142,17 @@ export default function HeroSectionOne() {
 
 const Navbar = () => {
   const {user} = useUser();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <nav className="flex w-full items-center justify-between border-t border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
-      <div className="flex items-center gap-2">
-        <div className="size-7 rounded-full bg-gradient-to-br from-violet-500 to-pink-500" />
-        <h1 className="text-base font-bold md:text-2xl">Aceternity UI</h1>
+      <div className="flex items-center ">
+        <Image src="/logo.png" alt="AI Medical Voice Agent" width={200} height={200} className="rounded-lg" />
+       
       </div>
       {!user?
       <Link href="/sign-in">
@@ -126,7 +160,7 @@ const Navbar = () => {
         Login
       </button></Link>:
       <div className="flex items-center gap-5">
-        <UserButton/>
+        {isMounted && <UserButton/>}
         <Button>
           <Link href="/dashboard">
             Dashboard

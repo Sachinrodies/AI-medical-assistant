@@ -1,45 +1,52 @@
+"use client"
 import { UserButton } from '@clerk/nextjs'
 import Image from 'next/image'
-import React from 'react'
+import Link from 'next/link'
+import React, { useEffect, useState } from 'react'
+
 const menuOptions=[
    
     {
         id:1,
         name:"Home",
-        path:"/home"
+        path:"/dashboard"
     },
     {
         id:2,
         name:"History",
-        path:"/history"
+        path:"/dashboard/history"
     },
     {
         id:3,
         name:"Pricing",
-        path:"/pricing"
+        path:"/dashboard/billing"
     },
-    {
-        id:4,
-        name:"Profile",
-        path:"/profile"
-    }
+    
 ]
 
 function AppHeader() {
-  return (
-    <div className="flex justify-between items-center p-4 shadow px-10 md:px-20 lg:px-40 ">
-        <Image src="/logo.svg" alt="logo" width={180} height={90} />
-        <div className="hidden md:flex gap-12 items-center">
-            {menuOptions.map((option,index)=>(
-                <div key={index}>
-                   <h2 className="hover:font-bold cursor-pointer transition-all">{option.name}</h2>
-                </div>
-            ))}
+  const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  return (
+    <header className="flex justify-between items-center p-4 shadow px-10 md:px-20 lg:px-40 bg-white">
+        <Link href="/dashboard">
+            <Image src="/logo.png" alt="logo" width={180} height={90} />
+        </Link>
+        <nav className="hidden md:flex gap-12 items-center">
+            {menuOptions.map((option,index)=>(
+                <Link key={index} href={option.path}>
+                   <h2 className="hover:font-bold cursor-pointer transition-all">{option.name}</h2>
+                </Link>
+            ))}
+        </nav>
+        <div className="flex items-center">
+            {isMounted && <UserButton/>}
         </div>
-        <UserButton/>
-      
-    </div>
+    </header>
   )
 }
 

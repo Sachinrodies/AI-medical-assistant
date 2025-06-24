@@ -39,13 +39,19 @@ function MedicalVoiceAgent() {
   const [messages, setMessages] = useState<message[]>([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router=useRouter();
   
-
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
-    sessionId && GetSessionDetails();
-  }, [sessionId])
+    if (isMounted && sessionId) {
+      GetSessionDetails();
+    }
+  }, [sessionId, isMounted])
+
   const GetSessionDetails = async () => {
     const result = await axios.get(`/api/session-chat?sessionId=${sessionId}`);
     console.log(result.data);

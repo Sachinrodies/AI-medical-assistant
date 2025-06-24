@@ -10,6 +10,10 @@ import {
     DialogTitle,
     DialogTrigger,
   } from "@/components/ui/dialog"
+import { useAuth } from '@clerk/nextjs'
+import { useEffect } from 'react'
+
+
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ArrowRight, Loader2 } from 'lucide-react'
@@ -17,6 +21,7 @@ import DoctorAgentCard, { DoctorAgent } from './DoctorAgentCard'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import SuggestedDoctorCard from './SuggestedDoctorCard'
+import { sessionDetails } from '../medical-agent/[sessionId]/page'
 
 
 function AddNewSessionDialog() {
@@ -24,7 +29,28 @@ function AddNewSessionDialog() {
     const [loading, setLoading] = useState(false);
     const [suggestedDoctors, setSuggestedDoctors] = useState<DoctorAgent[]>();
     const [selectedDoctor, setSelectedDoctor] = useState<DoctorAgent>();
+    const [history,setHistory]=useState<sessionDetails[]>([])
+    const [isMounted, setIsMounted] = useState(false);
     const router = useRouter();
+    const {has}=useAuth();
+  //@ts-ignore
+  const paidUser=has && has({plan:"pro"});
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(()=>{
+    if (isMounted) {
+        GetHistory();
+    }
+  },[isMounted])
+  const GetHistory=async()=>{
+    const result=await axios.get("/api/session-chat?sessionId=all");
+    console.log(result.data);
+    setHistory(result.data);
+    
+  }
     const onClickNext = async () => {
         setLoading(true);
         const result = await axios.post("/api/suggest-doctors", {
@@ -55,7 +81,7 @@ function AddNewSessionDialog() {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button className="mt-3">+ Start a Consultation</Button>
+                <Button className="mt-3" disabled={!paidUser && history?.length>0}>+ Start a Consultation</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
