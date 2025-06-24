@@ -47,6 +47,12 @@ export default function RootLayout({
         {children}
         <Toaster/>
 
+        <footer className="w-full text-center py-4 text-sm font-medium text-gray-700 dark:text-gray-200 border-t border-neutral-200 dark:border-neutral-800 mt-10 flex flex-col items-center gap-1">
+          <span>
+            Made with <span className="text-red-500">♥</span> by <span className="font-semibold">Sachin Dev</span>
+          </span>
+        </footer>
+
         </Provider>
         
       </body>
