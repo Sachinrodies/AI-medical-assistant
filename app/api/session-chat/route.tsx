@@ -6,6 +6,29 @@ import { sessionChatTable } from "@/config/schema";
 import { eq, desc } from "drizzle-orm"; 
 import { AIDoctorAgents } from "@/shared/list";
 
+// Type definition for DoctorAgent
+type DoctorAgent = {
+    id: number;
+    specialist: string;
+    description: string;
+    image: string;
+    agentPrompt: string;
+    voiceId: string;
+    subscriptionRequired: boolean;
+};
+
+// Type guard to check if an object is a DoctorAgent
+function isDoctorAgent(obj: any): obj is DoctorAgent {
+    return obj && 
+           typeof obj.id === 'number' &&
+           typeof obj.specialist === 'string' &&
+           typeof obj.description === 'string' &&
+           typeof obj.image === 'string' &&
+           typeof obj.agentPrompt === 'string' &&
+           typeof obj.voiceId === 'string' &&
+           typeof obj.subscriptionRequired === 'boolean';
+}
+
 export async function POST(req:NextRequest){
     const {notes,selectedDoctor}=await req.json();
     const user=await currentUser();
@@ -13,7 +36,7 @@ export async function POST(req:NextRequest){
     try{
         // Validate and ensure selectedDoctor has all required fields
         let validatedDoctor = selectedDoctor;
-        if (selectedDoctor && (!selectedDoctor.voiceId || !selectedDoctor.agentPrompt)) {
+        if (selectedDoctor && isDoctorAgent(selectedDoctor) && (!selectedDoctor.voiceId || !selectedDoctor.agentPrompt)) {
             // Try to find the complete doctor data from AIDoctorAgents
             const completeDoctor = AIDoctorAgents.find(doctor => 
                 doctor.id === selectedDoctor.id || 
@@ -68,20 +91,22 @@ export async function GET(req:NextRequest){
         if (result[0]) {
             // Validate and fix the selectedDoctor data if needed
             let sessionData = result[0];
-            if (sessionData.selectedDoctor && (!sessionData.selectedDoctor.voiceId || !sessionData.selectedDoctor.agentPrompt)) {
+            const selectedDoctor = sessionData.selectedDoctor as any;
+            
+            if (selectedDoctor && isDoctorAgent(selectedDoctor) && (!selectedDoctor.voiceId || !selectedDoctor.agentPrompt)) {
                 console.log("Fixing incomplete doctor data for session:", sessionId);
                 const completeDoctor = AIDoctorAgents.find(doctor => 
-                    doctor.id === sessionData.selectedDoctor.id || 
-                    doctor.specialist === sessionData.selectedDoctor.specialist
+                    doctor.id === selectedDoctor.id || 
+                    doctor.specialist === selectedDoctor.specialist
                 );
                 if (completeDoctor) {
                     sessionData.selectedDoctor = completeDoctor;
                 } else {
                     // Provide fallback values
                     sessionData.selectedDoctor = {
-                        ...sessionData.selectedDoctor,
-                        voiceId: sessionData.selectedDoctor.voiceId || "will",
-                        agentPrompt: sessionData.selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns."
+                        ...selectedDoctor,
+                        voiceId: selectedDoctor.voiceId || "will",
+                        agentPrompt: selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns."
                     };
                 }
             }

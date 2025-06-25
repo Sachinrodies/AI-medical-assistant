@@ -68,19 +68,28 @@ function MedicalVoiceAgent() {
       if (vapiInstance) {
         console.log("Cleaning up Vapi instance on component unmount");
         try {
-          vapiInstance.stop();
+          // Try to stop the call if it's still active
+          if (callStarted) {
+            vapiInstance.stop().catch(error => {
+              console.error("Error stopping call during unmount:", error);
+            });
+          }
+          
+          // Remove all event listeners
           vapiInstance.off('call-start');
           vapiInstance.off('call-end');
           vapiInstance.off('message');
           vapiInstance.off('speech-start');
           vapiInstance.off('speech-end');
           vapiInstance.off('error');
+          
+          console.log("Vapi instance cleanup completed");
         } catch (error) {
           console.error("Error during cleanup:", error);
         }
       }
     };
-  }, [vapiInstance]);
+  }, [vapiInstance, callStarted]);
 
   // Handle browser tab closure and page navigation
   useEffect(() => {
@@ -88,9 +97,20 @@ function MedicalVoiceAgent() {
       if (vapiInstance && callStarted) {
         console.log("Disconnecting call due to page unload");
         try {
-          vapiInstance.stop();
+          // Try to stop the call synchronously
+          vapiInstance.stop().catch(error => {
+            console.error("Error stopping call on page unload:", error);
+          });
+          
+          // Remove event listeners
+          vapiInstance.off('call-start');
+          vapiInstance.off('call-end');
+          vapiInstance.off('message');
+          vapiInstance.off('speech-start');
+          vapiInstance.off('speech-end');
+          vapiInstance.off('error');
         } catch (error) {
-          console.error("Error stopping call on page unload:", error);
+          console.error("Error during page unload cleanup:", error);
         }
       }
     };
@@ -233,11 +253,20 @@ function MedicalVoiceAgent() {
 
   }
   const endCall = async() => {
+    // Prevent multiple disconnect attempts
+    if (isEndingCall) {
+      console.log("Disconnect already in progress, ignoring request");
+      return;
+    }
+    
     setIsEndingCall(true);
     if(!vapiInstance) {
+      console.log("No Vapi instance found, cleaning up state only");
       setIsEndingCall(false);
       return;
     }
+    
+    console.log("Starting call disconnect process...");
     
     try {
       // Generate the report before ending the call
@@ -245,16 +274,23 @@ function MedicalVoiceAgent() {
         await GenerateReport();
       }
       
-      // Stop the call first
+      // Stop the call and wait for it to complete
+      console.log("Stopping Vapi call...");
       await vapiInstance.stop();
+      console.log("Vapi call stopped successfully");
       
-      // Remove all event listeners
+      // Wait a moment for any pending operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Remove all event listeners after the call is stopped
+      console.log("Removing event listeners...");
       vapiInstance.off('call-start');
       vapiInstance.off('call-end');
       vapiInstance.off('message');
       vapiInstance.off('speech-start');
       vapiInstance.off('speech-end');
-      vapiInstance.off('error'); // Add missing error event listener removal
+      vapiInstance.off('error');
+      console.log("Event listeners removed");
       
       // Clean up state
       setCallStarted(false);
@@ -271,15 +307,34 @@ function MedicalVoiceAgent() {
       // Even if report generation fails, try to disconnect the call
       try {
         if (vapiInstance) {
-          await vapiInstance.stop();
-          vapiInstance.off('call-start');
-          vapiInstance.off('call-end');
-          vapiInstance.off('message');
-          vapiInstance.off('speech-start');
-          vapiInstance.off('speech-end');
-          vapiInstance.off('error');
+          console.log("Attempting emergency disconnect...");
+          
+          // Try to stop the call
+          try {
+            await vapiInstance.stop();
+            console.log("Emergency stop successful");
+          } catch (stopError) {
+            console.error("Error during emergency stop:", stopError);
+          }
+          
+          // Wait a moment
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Remove event listeners
+          try {
+            vapiInstance.off('call-start');
+            vapiInstance.off('call-end');
+            vapiInstance.off('message');
+            vapiInstance.off('speech-start');
+            vapiInstance.off('speech-end');
+            vapiInstance.off('error');
+            console.log("Emergency event listener removal successful");
+          } catch (listenerError) {
+            console.error("Error removing event listeners:", listenerError);
+          }
         }
         
+        // Always clean up state
         setCallStarted(false);
         setVapiInstance(null);
         setLiveTranscript("");
@@ -289,6 +344,14 @@ function MedicalVoiceAgent() {
         toast.error("Call ended but there was an issue generating the report");
       } catch (disconnectError) {
         console.error("Error during disconnect cleanup:", disconnectError);
+        
+        // Force cleanup even if everything fails
+        setCallStarted(false);
+        setVapiInstance(null);
+        setLiveTranscript("");
+        setCurrentRole(null);
+        
+        router.replace("/dashboard");
         toast.error("Error disconnecting call");
       }
     } finally {
