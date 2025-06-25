@@ -31,7 +31,7 @@ function ViewReportDialog({ record }: props) {
     // Helper function to safely render arrays
     const renderList = (items: any[] | undefined) => {
         if (!items || !Array.isArray(items) || items.length === 0) {
-            return <span className="text-gray-500 italic">None mentioned</span>;
+            return <span className="text-gray-500 italic">None mentioned</span>
         }
         return (
             <ul className="list-disc list-inside text-sm mt-2">
