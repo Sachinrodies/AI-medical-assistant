@@ -70,7 +70,7 @@ function MedicalVoiceAgent() {
         try {
           // Try to stop the call if it's still active
           if (callStarted) {
-            vapiInstance.stop().catch(error => {
+            vapiInstance.stop().catch((error: any) => {
               console.error("Error stopping call during unmount:", error);
             });
           }
@@ -84,7 +84,7 @@ function MedicalVoiceAgent() {
           vapiInstance.off('error');
           
           console.log("Vapi instance cleanup completed");
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error during cleanup:", error);
         }
       }
@@ -98,7 +98,7 @@ function MedicalVoiceAgent() {
         console.log("Disconnecting call due to page unload");
         try {
           // Try to stop the call synchronously
-          vapiInstance.stop().catch(error => {
+          vapiInstance.stop().catch((error: any) => {
             console.error("Error stopping call on page unload:", error);
           });
           
@@ -109,7 +109,7 @@ function MedicalVoiceAgent() {
           vapiInstance.off('speech-start');
           vapiInstance.off('speech-end');
           vapiInstance.off('error');
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error during page unload cleanup:", error);
         }
       }
@@ -147,7 +147,7 @@ function MedicalVoiceAgent() {
       console.log("Doctor specialist:", result.data.selectedDoctor.specialist);
       
       setSessionDetails(result.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching session details:", error);
       alert("Failed to load session. Please try again.");
     }
@@ -245,7 +245,7 @@ function MedicalVoiceAgent() {
       setCurrentRole("user");
     });
     // Add error event handling
-    vapi.on('error', (error) => {
+    vapi.on('error', (error: any) => {
       console.error('Vapi error:', error);
       setIsStartingCall(false);
       alert('Vapi error: ' + (error?.message || JSON.stringify(error)));
@@ -301,7 +301,7 @@ function MedicalVoiceAgent() {
       // Navigate back to dashboard
       router.replace("/dashboard");
       toast.success("Your report is generated");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error ending call:", error);
       
       // Even if report generation fails, try to disconnect the call
@@ -313,7 +313,7 @@ function MedicalVoiceAgent() {
           try {
             await vapiInstance.stop();
             console.log("Emergency stop successful");
-          } catch (stopError) {
+          } catch (stopError: any) {
             console.error("Error during emergency stop:", stopError);
           }
           
@@ -329,7 +329,7 @@ function MedicalVoiceAgent() {
             vapiInstance.off('speech-end');
             vapiInstance.off('error');
             console.log("Emergency event listener removal successful");
-          } catch (listenerError) {
+          } catch (listenerError: any) {
             console.error("Error removing event listeners:", listenerError);
           }
         }
@@ -342,7 +342,7 @@ function MedicalVoiceAgent() {
         
         router.replace("/dashboard");
         toast.error("Call ended but there was an issue generating the report");
-      } catch (disconnectError) {
+      } catch (disconnectError: any) {
         console.error("Error during disconnect cleanup:", disconnectError);
         
         // Force cleanup even if everything fails
@@ -356,6 +356,7 @@ function MedicalVoiceAgent() {
       }
     } finally {
       setIsEndingCall(false);
+      setIsStartingCall(false);
     }
   };
   const GenerateReport=async()=>{
@@ -373,7 +374,7 @@ function MedicalVoiceAgent() {
       })
       console.log("Report generated successfully:", result.data);
       return result.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating report:", error);
       if (axios.isAxiosError(error)) {
         console.error("Axios error details:", error.response?.data);
