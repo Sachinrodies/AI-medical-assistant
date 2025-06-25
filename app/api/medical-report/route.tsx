@@ -41,29 +41,43 @@ Only include valid fields. Respond with nothing else.
 
 
 export async function POST(req:NextRequest){
-    const {sessionId,sessionDetails,messages}=await req.json();
-    try{
+    try {
+      const {sessionId,sessionDetails,messages}=await req.json();
+      
+      if (!sessionId) {
+        console.error("No sessionId provided");
+        return NextResponse.json({error:"Session ID is required"},{status:400});
+      }
+      
+      if (!messages || messages.length === 0) {
+        console.error("No messages provided");
+        return NextResponse.json({error:"Messages are required"},{status:400});
+      }
+      
       const UserInput="AI Doctor Agent Info:"+JSON.stringify(sessionDetails)+",Conversations:"+JSON.stringify(messages)
-        const completion = await openai.chat.completions.create({
-            model: "google/gemini-2.0-flash-001",
-            messages: [
-              {role:"system", content:REPORT_PROMPT},
-              { role: "user", content: UserInput }
-            ],
-          });
-          const raRes=completion.choices[0].message;
-          //@ts-ignore
-          const Resp=raRes.content.trim().replace(
-      "```json","").replace("```","")
-          const JSONResp=JSON.parse(Resp);
-          const result=await db.update(sessionChatTable).set({
-           report:JSONResp,
-           conversation:messages
-          }).where(eq(sessionChatTable.id,sessionId))
-          return NextResponse.json(JSONResp);
+      
+      const completion = await openai.chat.completions.create({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            {role:"system", content:REPORT_PROMPT},
+            { role: "user", content: UserInput }
+          ],
+        });
+        
+      const raRes=completion.choices[0].message;
+      //@ts-ignore
+      const Resp=raRes.content.trim().replace("```json","").replace("```","")
+      
+      const JSONResp=JSON.parse(Resp);
+      
+      const result=await db.update(sessionChatTable).set({
+       report:JSONResp,
+       conversation:messages
+      }).where(eq(sessionChatTable.id,sessionId))
+      
+      return NextResponse.json(JSONResp);
     }catch(error){
-      console.log(error);
-      return NextResponse.json({error:"Internal Server Error"},{status:500});
+      console.error("Medical report API error:", error);
+      return NextResponse.json({error:"Internal Server Error", details: error instanceof Error ? error.message : "Unknown error"},{status:500});
     }
-
 }

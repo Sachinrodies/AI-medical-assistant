@@ -14,16 +14,25 @@ import { toast } from 'sonner'
 
 export type sessionDetails = {
   id: number,
-
   notes: string,
   sessionId: string,
-  report: JSON,
+  report: {
+    sessionId: string;
+    agent: string;
+    user: string;
+    timestamp: string;
+    chiefComplaint: string;
+    summary: string;
+    symptoms: string[];
+    duration: string;
+    severity: string;
+    medicationsMentioned: string[];
+    recommendations: string[];
+  } | null;
   selectedDoctor: DoctorAgent
   createdOn: string,
- 
-
-
 }
+
 type message={
   role:string,
   text:string,
@@ -37,8 +46,8 @@ function MedicalVoiceAgent() {
   const [currentRole, setCurrentRole] = useState<string|null>();
   const [liveTranscript, setLiveTranscript] = useState<string>();
   const [messages, setMessages] = useState<message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [isStartingCall, setIsStartingCall] = useState(false);
+  const [isEndingCall, setIsEndingCall] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router=useRouter();
   
@@ -52,11 +61,67 @@ function MedicalVoiceAgent() {
     }
   }, [sessionId, isMounted])
 
-  const GetSessionDetails = async () => {
-    const result = await axios.get(`/api/session-chat?sessionId=${sessionId}`);
-    console.log(result.data);
-    setSessionDetails(result.data);
+  // Cleanup effect for component unmounting
+  useEffect(() => {
+    return () => {
+      // Cleanup function that runs when component unmounts
+      if (vapiInstance) {
+        try {
+          vapiInstance.stop();
+          vapiInstance.off('call-start');
+          vapiInstance.off('call-end');
+          vapiInstance.off('message');
+          vapiInstance.off('speech-start');
+          vapiInstance.off('speech-end');
+          vapiInstance.off('error');
+        } catch (error) {
+          console.error("Error during cleanup:", error);
+        }
+      }
+    };
+  }, [vapiInstance]);
 
+  // Handle browser tab closure and page navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (vapiInstance && callStarted) {
+        try {
+          vapiInstance.stop();
+        } catch (error) {
+          console.error("Error stopping call on page unload:", error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [vapiInstance, callStarted]);
+
+  const GetSessionDetails = async () => {
+    try {
+      const result = await axios.get(`/api/session-chat?sessionId=${sessionId}`);
+      
+      // Validate the session data structure
+      if (!result.data) {
+        console.error("No session data received");
+        alert("Failed to load session data. Please try again.");
+        return;
+      }
+      
+      if (!result.data.selectedDoctor) {
+        console.error("No selectedDoctor in session data");
+        alert("Session data is incomplete. Please create a new session.");
+        return;
+      }
+      
+      setSessionDetails(result.data);
+    } catch (error) {
+      console.error("Error fetching session details:", error);
+      alert("Failed to load session. Please try again.");
+    }
   }
 
   const startCall = async () => {
@@ -64,12 +129,6 @@ function MedicalVoiceAgent() {
       alert("Session details not loaded yet.");
       return;
     }
-  
-    // Debug logging to see what's in the selectedDoctor object
-    console.log("Session details:", sessionDetails);
-    console.log("Selected doctor:", sessionDetails.selectedDoctor);
-    console.log("VoiceId:", sessionDetails.selectedDoctor?.voiceId);
-    console.log("AgentPrompt:", sessionDetails.selectedDoctor?.agentPrompt);
   
     // Check if selectedDoctor exists and has required properties
     if (!sessionDetails.selectedDoctor) {
@@ -81,10 +140,7 @@ function MedicalVoiceAgent() {
     const voiceId = sessionDetails.selectedDoctor.voiceId || "will";
     const agentPrompt = sessionDetails.selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns.";
     
-    console.log("Using voiceId:", voiceId);
-    console.log("Using agentPrompt:", agentPrompt);
-    
-    setConnecting(true);
+    setIsStartingCall(true);
     
     const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
     setVapiInstance(vapi);
@@ -110,26 +166,18 @@ function MedicalVoiceAgent() {
       ]
     }
     }
-    // Debug logs
-  
-   
-   
-     //@ts-ignore
 
     vapi.start(VapiAgentConfig);
-    // vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!)
-    vapi.on('call-start', () => {console.log('Call started')
-      setLoading(false)
-      setConnecting(false)
+    vapi.on('call-start', () => {
+      setIsStartingCall(false)
       setCallStarted(true);
   });
-    vapi.on('call-end', () =>{ console.log('Call ended')
+    vapi.on('call-end', () => {
       setCallStarted(false);
   });
     vapi.on('message', (message) => {
       if (message.type === 'transcript') {
         const {role,transcriptType,transcript}=message;
-        console.log(`${message.role}: ${message.transcript}`);
         if(transcriptType=="partial"){
           setLiveTranscript(transcript);
           setCurrentRole(role)
@@ -144,59 +192,101 @@ function MedicalVoiceAgent() {
       }
     });
     vapi.on('speech-start', () => {
-      console.log('Assistant started speaking');
       setCurrentRole("assistant");
     });
     vapi.on('speech-end', () => {
-      console.log('Assistant stopped speaking');
       setCurrentRole("user");
     });
     // Add error event handling
     vapi.on('error', (error) => {
       console.error('Vapi error:', error);
+      setIsStartingCall(false);
       alert('Vapi error: ' + (error?.message || JSON.stringify(error)));
     });
 
   }
   const endCall = async() => {
-    setLoading(true);
+    setIsEndingCall(true);
     if(!vapiInstance) {
-      setLoading(false);
+      setIsEndingCall(false);
       return;
     }
-    vapiInstance.stop();
-    vapiInstance.off('call-start');
-    vapiInstance.off('call-end');
-    vapiInstance.off('message');
-    vapiInstance.off('speech-start');
-    vapiInstance.off('speech-end');
     
-    setCallStarted(false);
-    setVapiInstance(null);
-    router.replace("/dashboard");
-    toast.success("Your report is generated");
-    setLoading(false);
+    try {
+      // Generate the report before ending the call
+      if (messages.length > 0 && sessionDetails) {
+        await GenerateReport();
+      }
+      
+      // Stop the call first
+      await vapiInstance.stop();
+      
+      // Remove all event listeners
+      vapiInstance.off('call-start');
+      vapiInstance.off('call-end');
+      vapiInstance.off('message');
+      vapiInstance.off('speech-start');
+      vapiInstance.off('speech-end');
+      vapiInstance.off('error'); // Add missing error event listener removal
+      
+      // Clean up state
+      setCallStarted(false);
+      setVapiInstance(null);
+      setLiveTranscript("");
+      setCurrentRole(null);
+      
+      // Navigate back to dashboard
+      router.replace("/dashboard");
+      toast.success("Your report is generated");
+    } catch (error) {
+      console.error("Error ending call:", error);
+      
+      // Even if report generation fails, try to disconnect the call
+      try {
+        if (vapiInstance) {
+          await vapiInstance.stop();
+          vapiInstance.off('call-start');
+          vapiInstance.off('call-end');
+          vapiInstance.off('message');
+          vapiInstance.off('speech-start');
+          vapiInstance.off('speech-end');
+          vapiInstance.off('error');
+        }
+        
+        setCallStarted(false);
+        setVapiInstance(null);
+        setLiveTranscript("");
+        setCurrentRole(null);
+        
+        router.replace("/dashboard");
+        toast.error("Call ended but there was an issue generating the report");
+      } catch (disconnectError) {
+        console.error("Error during disconnect cleanup:", disconnectError);
+        toast.error("Error disconnecting call");
+      }
+    } finally {
+      setIsEndingCall(false);
+    }
   };
   const GenerateReport=async()=>{
-    const result=await axios.post("/api/medical-report",{
-      messages:messages,
-      sessionDetails:sessionDetails,
-      sessionId:sessionId,
-
-    })
-    console.log(result.data);
-    return result.data;
-
+    try {
+      const result=await axios.post("/api/medical-report",{
+        messages:messages,
+        sessionDetails:sessionDetails,
+        sessionId:sessionDetails?.id, // Use the database id, not the sessionId string
+      })
+      return result.data;
+    } catch (error) {
+      console.error("Error generating report:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", error.response?.data);
+      }
+      throw error;
+    }
   }
 
   return (
     <div className="p-5 border rounded-3xl bg-secondary relative">
-      {connecting && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-60">
-          <Loader2 className="animate-spin text-white" size={48} />
-          <span className="mt-4 text-white text-lg font-semibold">Connecting to AI Medical Voice Agent...</span>
-        </div>
-      )}
       <div className='flex justify-between items-center'>
         <h2 className="p-1 px-2 border rounded-md flex gap-2 items-center"> <Circle className={`h-4 w-4 rounded-full ${callStarted?"bg-green-500":"bg-red-500"}`} />{callStarted ? "Connected..":"Not Connected"}</h2>
         <h2 className="font-bold text-xl text-gray-400">00:00</h2>
@@ -227,18 +317,47 @@ function MedicalVoiceAgent() {
           {liveTranscript && liveTranscript?.length>0 &&<h2 className="text-lg">{currentRole}:{liveTranscript}</h2>}
 
         </div>
-        {!callStarted ?<Button className="mt-20" onClick={startCall} disabled={loading}>
-          {loading ?<Loader2 className="animate-spin" />:<PhoneCall />}Start Call
-        </Button>
-        :<Button onClick={endCall} variant={"destructive"} disabled={loading}>
-          {loading ?<Loader2 className="animate-spin" />:<PhoneOff />}Disconnect
-        </Button>}
-
-
+        {!callStarted ? (
+          <Button 
+            className="mt-20" 
+            onClick={startCall} 
+            disabled={isStartingCall}
+            size="lg"
+          >
+            {isStartingCall ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <PhoneCall className="mr-2 h-4 w-4" />
+                Start Call
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button 
+            onClick={endCall} 
+            variant="destructive" 
+            disabled={isEndingCall}
+            size="lg"
+          >
+            {isEndingCall ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Disconnecting...
+              </>
+            ) : (
+              <>
+                <PhoneOff className="mr-2 h-4 w-4" />
+                Disconnect
+              </>
+            )}
+          </Button>
+        )}
       </div>
       }
-
-
     </div>
   )
 }
