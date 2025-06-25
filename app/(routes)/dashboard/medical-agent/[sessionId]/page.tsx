@@ -66,6 +66,7 @@ function MedicalVoiceAgent() {
     return () => {
       // Cleanup function that runs when component unmounts
       if (vapiInstance) {
+        console.log("Cleaning up Vapi instance on component unmount");
         try {
           vapiInstance.stop();
           vapiInstance.off('call-start');
@@ -85,6 +86,7 @@ function MedicalVoiceAgent() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (vapiInstance && callStarted) {
+        console.log("Disconnecting call due to page unload");
         try {
           vapiInstance.stop();
         } catch (error) {
@@ -103,6 +105,7 @@ function MedicalVoiceAgent() {
   const GetSessionDetails = async () => {
     try {
       const result = await axios.get(`/api/session-chat?sessionId=${sessionId}`);
+      console.log("Raw session data:", result.data);
       
       // Validate the session data structure
       if (!result.data) {
@@ -117,6 +120,12 @@ function MedicalVoiceAgent() {
         return;
       }
       
+      // Log the doctor data structure
+      console.log("Selected doctor data:", result.data.selectedDoctor);
+      console.log("Doctor voiceId:", result.data.selectedDoctor.voiceId);
+      console.log("Doctor agentPrompt:", result.data.selectedDoctor.agentPrompt);
+      console.log("Doctor specialist:", result.data.selectedDoctor.specialist);
+      
       setSessionDetails(result.data);
     } catch (error) {
       console.error("Error fetching session details:", error);
@@ -130,6 +139,12 @@ function MedicalVoiceAgent() {
       return;
     }
   
+    // Debug logging to see what's in the selectedDoctor object
+    console.log("Session details:", sessionDetails);
+    console.log("Selected doctor:", sessionDetails.selectedDoctor);
+    console.log("VoiceId:", sessionDetails.selectedDoctor?.voiceId);
+    console.log("AgentPrompt:", sessionDetails.selectedDoctor?.agentPrompt);
+  
     // Check if selectedDoctor exists and has required properties
     if (!sessionDetails.selectedDoctor) {
       alert("Doctor configuration missing. Please try creating a new session.");
@@ -139,6 +154,9 @@ function MedicalVoiceAgent() {
     // Use fallback values if voiceId or agentPrompt are missing
     const voiceId = sessionDetails.selectedDoctor.voiceId || "will";
     const agentPrompt = sessionDetails.selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns.";
+    
+    console.log("Using voiceId:", voiceId);
+    console.log("Using agentPrompt:", agentPrompt);
     
     setIsStartingCall(true);
     
@@ -166,18 +184,25 @@ function MedicalVoiceAgent() {
       ]
     }
     }
+    // Debug logs
+  
+   
+   
+     //@ts-ignore
 
     vapi.start(VapiAgentConfig);
-    vapi.on('call-start', () => {
+    // vapi.start(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID!)
+    vapi.on('call-start', () => {console.log('Call started')
       setIsStartingCall(false)
       setCallStarted(true);
   });
-    vapi.on('call-end', () => {
+    vapi.on('call-end', () =>{ console.log('Call ended')
       setCallStarted(false);
   });
     vapi.on('message', (message) => {
       if (message.type === 'transcript') {
         const {role,transcriptType,transcript}=message;
+        console.log(`${message.role}: ${message.transcript}`);
         if(transcriptType=="partial"){
           setLiveTranscript(transcript);
           setCurrentRole(role)
@@ -192,9 +217,11 @@ function MedicalVoiceAgent() {
       }
     });
     vapi.on('speech-start', () => {
+      console.log('Assistant started speaking');
       setCurrentRole("assistant");
     });
     vapi.on('speech-end', () => {
+      console.log('Assistant stopped speaking');
       setCurrentRole("user");
     });
     // Add error event handling
@@ -270,11 +297,18 @@ function MedicalVoiceAgent() {
   };
   const GenerateReport=async()=>{
     try {
+      console.log("Generating report with data:", {
+        messagesCount: messages.length,
+        sessionDetailsId: sessionDetails?.id,
+        sessionDetails: sessionDetails
+      });
+      
       const result=await axios.post("/api/medical-report",{
         messages:messages,
         sessionDetails:sessionDetails,
         sessionId:sessionDetails?.id, // Use the database id, not the sessionId string
       })
+      console.log("Report generated successfully:", result.data);
       return result.data;
     } catch (error) {
       console.error("Error generating report:", error);

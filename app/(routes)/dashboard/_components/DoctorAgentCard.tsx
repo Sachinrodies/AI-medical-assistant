@@ -43,9 +43,10 @@ function DoctorAgentCard({doctor}:props) {
         notes: "New Query",
         selectedDoctor: doctor
     });
-    
+    console.log(result.data);
     if (result.data?.sessionId) {
-        router.push(`/dashboard/medical-agent/${result.data.sessionId}`);
+        console.log(result.data?.sessionId);
+        router.push(`/dashboard/medical-agent/${result.data?.sessionId}`);
     }
     setLoading(false);
 }

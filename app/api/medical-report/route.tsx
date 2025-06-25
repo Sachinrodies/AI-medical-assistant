@@ -44,6 +44,12 @@ export async function POST(req:NextRequest){
     try {
       const {sessionId,sessionDetails,messages}=await req.json();
       
+      console.log("Medical report API called with:", {
+        sessionId,
+        sessionDetailsId: sessionDetails?.id,
+        messagesCount: messages?.length
+      });
+      
       if (!sessionId) {
         console.error("No sessionId provided");
         return NextResponse.json({error:"Session ID is required"},{status:400});
@@ -55,6 +61,7 @@ export async function POST(req:NextRequest){
       }
       
       const UserInput="AI Doctor Agent Info:"+JSON.stringify(sessionDetails)+",Conversations:"+JSON.stringify(messages)
+      console.log("Sending to OpenAI with input length:", UserInput.length);
       
       const completion = await openai.chat.completions.create({
           model: "google/gemini-2.0-flash-001",
@@ -67,14 +74,17 @@ export async function POST(req:NextRequest){
       const raRes=completion.choices[0].message;
       //@ts-ignore
       const Resp=raRes.content.trim().replace("```json","").replace("```","")
+      console.log("Raw AI response:", Resp);
       
       const JSONResp=JSON.parse(Resp);
+      console.log("Parsed JSON response:", JSONResp);
       
       const result=await db.update(sessionChatTable).set({
        report:JSONResp,
        conversation:messages
       }).where(eq(sessionChatTable.id,sessionId))
       
+      console.log("Database update result:", result);
       return NextResponse.json(JSONResp);
     }catch(error){
       console.error("Medical report API error:", error);

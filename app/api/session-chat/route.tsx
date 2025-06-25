@@ -43,50 +43,55 @@ export async function POST(req:NextRequest){
         return NextResponse.json(result[0]?.sessionChatTable);
         
     }catch(error){
-        console.error("Error creating session:", error);
-        return NextResponse.json({error: "Failed to create session"}, {status: 500});
+       console.error("Error creating session:", error);
+       return NextResponse.json({error: "Failed to create session"}, {status: 500});
     }
 }
-
 export async function GET(req:NextRequest){
     const {searchParams}=new URL(req.url);
     const sessionId=searchParams.get("sessionId");
     const user=await currentUser();
-    
-    if(!sessionId) {
-        return NextResponse.json({error: "Session ID required"}, {status: 400});
-    }
-    
-    try{
+    if(sessionId==="all"){
         const result=await db.select().from(sessionChatTable)
         //@ts-ignore
-        .where(eq(sessionChatTable.sessionId,sessionId))
-        .orderBy(desc(sessionChatTable.createdOn))
-        .limit(1);
-        
-        if(result.length===0) {
-            return NextResponse.json({error: "Session not found"}, {status: 404});
-        }
-        
-        let sessionData=result[0];
-        
-        // Fix incomplete doctor data if needed
-        if (sessionData.selectedDoctor && (!sessionData.selectedDoctor.voiceId || !sessionData.selectedDoctor.agentPrompt)) {
-            const completeDoctor = AIDoctorAgents.find(doctor => 
-                doctor.id === sessionData.selectedDoctor.id || 
-                doctor.specialist === sessionData.selectedDoctor.specialist
-            );
-            if (completeDoctor) {
-                sessionData.selectedDoctor = completeDoctor;
-            }
-        }
-        
-        return NextResponse.json(sessionData);
-        
-    }catch(error){
-        console.error("Error fetching session:", error);
-        return NextResponse.json({error: "Failed to fetch session"}, {status: 500});
+        .where(eq(sessionChatTable.createdBy,user?.primaryEmailAddress?.emailAddress))
+        .orderBy(desc(sessionChatTable.id));
+        return NextResponse.json(result);
+
+
     }
+    else{
+        const result=await db.select().from(sessionChatTable)
+        //@ts-ignore
+        .where(eq(sessionChatTable.sessionId,sessionId));
+        
+        if (result[0]) {
+            // Validate and fix the selectedDoctor data if needed
+            let sessionData = result[0];
+            if (sessionData.selectedDoctor && (!sessionData.selectedDoctor.voiceId || !sessionData.selectedDoctor.agentPrompt)) {
+                console.log("Fixing incomplete doctor data for session:", sessionId);
+                const completeDoctor = AIDoctorAgents.find(doctor => 
+                    doctor.id === sessionData.selectedDoctor.id || 
+                    doctor.specialist === sessionData.selectedDoctor.specialist
+                );
+                if (completeDoctor) {
+                    sessionData.selectedDoctor = completeDoctor;
+                } else {
+                    // Provide fallback values
+                    sessionData.selectedDoctor = {
+                        ...sessionData.selectedDoctor,
+                        voiceId: sessionData.selectedDoctor.voiceId || "will",
+                        agentPrompt: sessionData.selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns."
+                    };
+                }
+            }
+            return NextResponse.json(sessionData);
+        }
+        
+        return NextResponse.json({error: "Session not found"}, {status: 404});
+    }
+   
+
 }
 
 export async function DELETE(req:NextRequest){

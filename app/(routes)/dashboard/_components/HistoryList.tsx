@@ -22,8 +22,10 @@ function HistoryList() {
     },[isMounted])
 
     const GetHistory=async()=>{
-      const result = await axios.get("/api/session-chat?sessionId=all");
+      const result=await axios.get("/api/session-chat?sessionId=all");
+      console.log(result.data);
       setHistory(result.data);
+      
     }
   return (
     <div className="mt-10">

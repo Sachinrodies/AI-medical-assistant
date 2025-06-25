@@ -47,6 +47,7 @@ function AddNewSessionDialog() {
   },[isMounted])
   const GetHistory=async()=>{
     const result=await axios.get("/api/session-chat?sessionId=all");
+    console.log(result.data);
     setHistory(result.data);
     
   }
@@ -55,6 +56,7 @@ function AddNewSessionDialog() {
         const result = await axios.post("/api/suggest-doctors", {
             notes: note,
         });
+        console.log(result.data);
         setSuggestedDoctors(result.data);
         setLoading(false);
     }
@@ -69,9 +71,10 @@ function AddNewSessionDialog() {
             notes: note,
             selectedDoctor: selectedDoctor
         });
-        
+        console.log(result.data);
         if (result.data?.sessionId) {
-            router.push(`/dashboard/medical-agent/${result.data.sessionId}`);
+            console.log(result.data?.sessionId);
+            router.push(`/dashboard/medical-agent/${result.data?.sessionId}`);
         }
         setLoading(false);
     }
