@@ -13,7 +13,7 @@ function SuggestedDoctorCard({DoctorAgent, setSelectedDoctor, selectedDoctor}: p
     border rounded-2xl shadow p-5
     hover:border-blue-500 cursor-pointer
     ${selectedDoctor?.id==DoctorAgent?.id && "border-blue-500"}`} onClick={()=>setSelectedDoctor(DoctorAgent)}>
-        <Image src={DoctorAgent?.image||"/default.png"}
+        <Image src={DoctorAgent?.image}
         alt={DoctorAgent?.specialist}
         width={70}
         height={70}

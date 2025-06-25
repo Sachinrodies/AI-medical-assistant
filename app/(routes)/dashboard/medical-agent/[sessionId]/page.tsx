@@ -65,12 +65,26 @@ function MedicalVoiceAgent() {
       return;
     }
   
-    if (!sessionDetails.selectedDoctor?.voiceId || !sessionDetails.selectedDoctor?.agentPrompt) {
-      alert("Doctor configuration incomplete (missing voiceId or prompt).");
+    // Debug logging to see what's in the selectedDoctor object
+    console.log("Session details:", sessionDetails);
+    console.log("Selected doctor:", sessionDetails.selectedDoctor);
+    console.log("VoiceId:", sessionDetails.selectedDoctor?.voiceId);
+    console.log("AgentPrompt:", sessionDetails.selectedDoctor?.agentPrompt);
+  
+    // Check if selectedDoctor exists and has required properties
+    if (!sessionDetails.selectedDoctor) {
+      alert("Doctor configuration missing. Please try creating a new session.");
       return;
     }
+  
+    // Use fallback values if voiceId or agentPrompt are missing
+    const voiceId = sessionDetails.selectedDoctor.voiceId || "will";
+    const agentPrompt = sessionDetails.selectedDoctor.agentPrompt || "You are an AI medical assistant. Help the user with their health concerns.";
+    
+    console.log("Using voiceId:", voiceId);
+    console.log("Using agentPrompt:", agentPrompt);
+    
     setConnecting(true);
-    console.log("Using voiceId:", sessionDetails.selectedDoctor.voiceId);
     
     const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
     setVapiInstance(vapi);
@@ -83,7 +97,7 @@ function MedicalVoiceAgent() {
     },
     voice: {
       provider: "playht",
-      voiceId: sessionDetails.selectedDoctor.voiceId || "will"
+      voiceId: voiceId
     },
     model: {
       provider: "openai",
@@ -91,7 +105,7 @@ function MedicalVoiceAgent() {
       messages: [
         {
           role: "system",
-          content: sessionDetails.selectedDoctor.agentPrompt || "You're an AI medical assistant."
+          content: agentPrompt
         }
       ]
     }

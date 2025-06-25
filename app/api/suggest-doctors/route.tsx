@@ -19,9 +19,36 @@ export async function POST(req:NextRequest) {
     const Resp=raRes.content.trim().replace(
 "```json","").replace("```","")
     const JSONResp=JSON.parse(Resp);
-    return NextResponse.json(JSONResp);
+    
+    // Ensure we return complete doctor objects with all required fields
+    // Map the suggested doctors back to the complete AIDoctorAgents data
+    let suggestedDoctors = [];
+    if (Array.isArray(JSONResp)) {
+      suggestedDoctors = JSONResp.map((suggestedDoctor: any) => {
+        // Find the complete doctor object from AIDoctorAgents
+        const completeDoctor = AIDoctorAgents.find(doctor => 
+          doctor.id === suggestedDoctor.id || 
+          doctor.specialist === suggestedDoctor.specialist
+        );
+        return completeDoctor || suggestedDoctor;
+      });
+    } else if (JSONResp.doctors && Array.isArray(JSONResp.doctors)) {
+      suggestedDoctors = JSONResp.doctors.map((suggestedDoctor: any) => {
+        const completeDoctor = AIDoctorAgents.find(doctor => 
+          doctor.id === suggestedDoctor.id || 
+          doctor.specialist === suggestedDoctor.specialist
+        );
+        return completeDoctor || suggestedDoctor;
+      });
+    } else {
+      // If the response format is unexpected, return the original response
+      suggestedDoctors = JSONResp;
+    }
+    
+    return NextResponse.json(suggestedDoctors);
   }
   catch(e){
-    return NextResponse.json(e);
+    console.error("Error in suggest-doctors:", e);
+    return NextResponse.json({error: "Failed to suggest doctors"}, {status: 500});
   }
 }
